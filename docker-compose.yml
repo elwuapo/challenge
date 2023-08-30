@@ -1,0 +1,54 @@
+version: '3'
+services:      
+  postgres:
+    image: postgres:latest
+    container_name: challenge_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: REPORTS
+      POSTGRES_USER: nrivera
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+      
+  ms1:
+    container_name: challenge_ms1
+    build:
+      context: ./ms1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mynetwork
+    environment:
+      NAME: REPORTS
+      USER": nrivera
+      PASSWORD: password
+      HOST: postgres
+      PORT: 5432
+
+  ms2:
+    container_name: challenge_ms2
+    build:
+      context: ./ms2
+    ports:
+      - "8000:8000"
+    networks:
+      - mynetwork
+    environment:
+      MS1: http://ms1:7000/
+
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  postgres-data:
