@@ -1,6 +1,5 @@
 # Importaciones de python
 import random
-import time
 from datetime import datetime, timedelta
 
 # Importaciones de django
@@ -203,8 +202,6 @@ class Report(APIView):
                     url=url
                 )
 
-                time.sleep(random.uniform(5, 10))
-
                 report.status = 'creating'
                 report.save()
 
@@ -224,8 +221,6 @@ class Report(APIView):
 
                 with open(path, 'w') as f:
                     f.write('\n'.join(lines))
-
-                time.sleep(random.uniform(5, 10))
 
                 report.status = 'created'
                 report.save()

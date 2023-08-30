@@ -1,9 +1,18 @@
-ubicarse en la ruta raiz del proyecto sobre la terminal y crear el entorno virtual para el manejo de librerias de python.
+puedes levantar la documentación mediante el comando 
 
 ```
-python3 -m venv .env     
+mkdocs serve
 ```
 
+Si no te reconoce el comando puedes instalar las librerias de python necesarias mediante
+
 ```
-pip freeze > requirements.txt
+pip install mkdocs
+pip install mkdocs-material
+```
+
+ahora vuelve a lanzar el comando 
+
+```
+mkdocs serve
 ```
