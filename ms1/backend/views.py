@@ -1,13 +1,11 @@
 # Importaciones de python
 import random
+import time
 from datetime import datetime, timedelta
-
-# Importaciones de django
-from django.shortcuts import render
-from django.core import serializers
+import threading
 
 # Importaciones de librerias
-from rest_framework.views import APIView
+from rest_framework.views import APIView 
 from rest_framework.response import Response
 from faker import Faker
 
@@ -17,6 +15,44 @@ from backend.models import Report as ReportModel
 from backend.models import Person as PersonModel
 
 faker = Faker()
+
+def create_report(person, punches, report):
+    time.sleep(random.uniform(5, 10))
+
+    filename = 'report_{str_datetime}.txt'.format(str_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    path     = './static/reports/{filename}'.format(filename = filename)
+    url      = 'http://localhost:8000/static/reports/{filename}'.format(filename = filename)
+
+    report.status = 'creating'
+    report.save()
+
+    lines = [
+        'Reporte de asistencia de {name}'.format(name=person.name),
+        'Fecha de creacion: {datetime}'.format(datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        'Marcas de entrada y salida: ',
+        'Nota: las fechas estan en formato UTC-0 para su facil conversion',
+        '----------------------------------------------------------------',
+    ]
+
+    for punch in punches:
+        if(punch.type == 'in'):
+            lines.append('{type} : {datetime}'.format(type=punch.type, datetime=punch.punch_time.strftime("%Y-%m-%d %H:%M:%S")))
+        else:
+            lines.append('{type}: {datetime}'.format(type=punch.type, datetime=punch.punch_time.strftime("%Y-%m-%d %H:%M:%S")))
+
+    with open(path, 'w') as f:
+        f.write('\n'.join(lines))
+
+    time.sleep(random.uniform(5, 10))
+
+    report.status   = 'created'
+    report.filename = filename
+    report.path     = path
+    report.url      = url
+    report.save()
+
+    return None
+
 
 # Endpoint para realizar insertsiones random en la tabla de Punch
 class Punch(APIView):    
@@ -191,40 +227,16 @@ class Report(APIView):
                 person  = PersonModel.objects.get(person_id = person_id)
                 punches = PunchModel.objects.filter(person_id = person_id)
 
-                filename = 'report_{str_datetime}.txt'.format(str_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-                path     = './static/reports/{filename}'.format(filename = filename)
-                url      = 'http://localhost:8000/static/reports/{filename}'.format(filename = filename)
-
                 report = ReportModel.objects.create(
                     status='pending',
-                    filename=filename, 
-                    path=path,
-                    url=url
+                    filename='', 
+                    path='',
+                    url=''
                 )
 
-                report.status = 'creating'
-                report.save()
+                thread = threading.Thread(target=create_report, args=(person, punches, report))
+                thread.start()
 
-                lines = [
-                    'Reporte de asistencia de {name}'.format(name=person.name),
-                    'Fecha de creacion: {datetime}'.format(datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'Marcas de entrada y salida: ',
-                    'Nota: las fechas estan en formato UTC-0 para su facil conversion',
-                    '----------------------------------------------------------------',
-                ]
-
-                for punch in punches:
-                    if(punch.type == 'in'):
-                        lines.append('{type} : {datetime}'.format(type=punch.type, datetime=punch.punch_time.strftime("%Y-%m-%d %H:%M:%S")))
-                    else:
-                        lines.append('{type}: {datetime}'.format(type=punch.type, datetime=punch.punch_time.strftime("%Y-%m-%d %H:%M:%S")))
-
-                with open(path, 'w') as f:
-                    f.write('\n'.join(lines))
-
-                report.status = 'created'
-                report.save()
-                
                 response = {
                     'report_id': report.report_id,
                     'status': report.status,
@@ -240,6 +252,7 @@ class Report(APIView):
         except Exception as e:
             print(e)
             return Response(status=400)
+
 
 class Check(APIView):
     def get(cls, request):
